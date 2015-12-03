@@ -6,8 +6,11 @@
 
 RoutingTable::~RoutingTable()
 {
-    while(!table.empty()) {
-        delete table.back();
-        table.pop_back();
+    table.empty();
+}
+
+void RoutingTable::broadcast_all(string *tuip_id) {
+    for(auto it = table.begin(); it != table.end(); ++it) {
+        it->second->broadcast_to(tuip_id, &table);
     }
 }
