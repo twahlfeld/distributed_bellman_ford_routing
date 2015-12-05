@@ -46,9 +46,7 @@ public:
         return table.find(id)->second->get_weight();
     }
 
-    void print_table() {
-
-    }
+    void print_table();
 
     void broadcast_all(string *tuip_id);
 

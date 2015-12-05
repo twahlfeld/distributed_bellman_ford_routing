@@ -13,8 +13,8 @@ Node::Node(const char *ip_addr, const char *prt, const int64_t w,
     weight = w;
     udp_sock = sock;
     udp_addr = addr;
-
     alias = string(ip_addr) + string(":") + string(prt);
+    nearest_neighbor = alias;
 }
 
 void Node::broadcast_to(string *tuip_id,
@@ -27,8 +27,10 @@ void Node::broadcast_to(string *tuip_id,
         tuip_msg += node->get_alias() + string(":")
                  + std::to_string(node->get_weight()) + string("\n");
     }
-    sendto(udp_sock, tuip_msg.c_str(), tuip_msg.length(), NOFLAG,
-           udp_addr->ai_addr, udp_addr->ai_addrlen);
+    tuip_msg += string("\n");
+    ssize_t len = sendto(udp_sock, tuip_msg.c_str(), tuip_msg.length(), NOFLAG,
+                         udp_addr->ai_addr, udp_addr->ai_addrlen);
+    printf("sent:%ld bytes\n", len);
 }
 
 void Node::update_route(Node *node)

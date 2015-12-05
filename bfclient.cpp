@@ -16,6 +16,7 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <sys/errno.h>
 #include "bf_node.h"
 #include "routing_table.h"
 #include "tuip.h"
@@ -42,6 +43,7 @@ addrinfo *create_udp_addr(const char *hostname, const char *port) {
     hints.ai_flags = AI_ADDRCONFIG;
     struct addrinfo *addr = nullptr;
     if (getaddrinfo(hostname, port, &hints, &addr)) {
+        perror("getaddrinfo() failed");
         return nullptr;
     }
     return addr;
@@ -65,10 +67,10 @@ void bind_udp(int sock, struct addrinfo *addr) {
 
 int open_udp_listening_socket(const char *port) {
     struct addrinfo *addr = create_udp_addr(nullptr, port);
-    int lstn_sock = create_udp_socket(addr);
-    bind_udp(lstn_sock, addr);
+    int sock = create_udp_socket(addr);
+    bind_udp(sock, addr);
     freeaddrinfo(addr);
-    return lstn_sock;
+    return sock;
 }
 
 bool timer_send(time_t *interval)
@@ -82,7 +84,7 @@ bool timer_send(time_t *interval)
     return false;
 }
 
-string tuip_id(char *port)
+string tuip_id(const char *port)
 {
     int sock;
     struct ifreq ifr;
@@ -119,7 +121,7 @@ void *dbfr_loop(void *kludged_data) {
     sockaddr_storage src_addr;
     socklen_t src_len = sizeof(src_addr);
     RoutingTable *rt = (RoutingTable *) sock_rt_id_int[1];
-    string *id = (string *) sock_rt_id_int[2];
+    string *id = (string *)sock_rt_id_int[2];
     time_t *interval = (time_t *) sock_rt_id_int[3];
     uint8_t buffer[4096];
     while (rt != nullptr) {
@@ -128,7 +130,8 @@ void *dbfr_loop(void *kludged_data) {
         }
         ssize_t len;
         while((len = recvfrom(lstn_sock, buffer, sizeof(buffer)-1,
-                               0, (sockaddr *)&src_addr, &src_len)) > 0) {
+                              0, (sockaddr *)&src_addr, &src_len)) > 0) {
+            printf("recv: %s\n", buffer);
             buffer[len] = '\0';
             while(buffer[0] != '\0') {
                 Tuip tuip = Tuip(buffer);
@@ -136,7 +139,11 @@ void *dbfr_loop(void *kludged_data) {
                 update_adj_vec(&tuip, rt);
             }
         }
-        rt->broadcast_all(id);
+        if(len < 0 && errno != EAGAIN){
+            printf("len = %ld\n", len);
+            perror("recvfrom()");
+            pthread_exit(nullptr);
+        }
     }
     pthread_exit(nullptr);
 }
@@ -152,20 +159,31 @@ int main(int argc, char *argv[])
     if(argc%3) {
         die_with_err("Invalid triplet amount");
     }
-    string id = tuip_id(argv[1]);
-    printf("%s\n", id.c_str());
+    string id = tuip_id(local_port);
     int lstn_sock = open_udp_listening_socket(local_port);
+    /*for(;;) {
+        char buf[500];
+        struct sockaddr_storage src_addr;
+        socklen_t src_len = sizeof(src_addr);
+        if(recvfrom(lstn_sock, buf, 500, 0,
+                    (struct sockaddr *) &src_addr, &src_len)>0) {
+            printf("%s\n", buf);
+        }
+    }*/
     for(int trip_idx = 3; trip_idx < argc; trip_idx += 3) {
         char *ip = argv[trip_idx];
         char *port = argv[trip_idx+1];
         long long weight = (long long)atol(argv[trip_idx+2]);
-        struct addrinfo *addr = create_udp_addr(ip, port);
+        addrinfo *addr = create_udp_addr(ip, port);
         int sock = create_udp_socket(addr);
+        sendto(sock, "HELLO WORLD\n", 12, 0, addr->ai_addr, addr->ai_addrlen);
         rt->add_node(new Node(ip, port, weight, sock, addr));
     }
-    void *rt_id_int[] = {&lstn_sock, rt, &id, &interval};
+    printf("\n%s\n", id.c_str());
+    void *sock_rt_id_int[] = {&lstn_sock, rt, &id, &interval};
+
     pthread_t pt_dbfrloop;
-    pthread_create(&pt_dbfrloop, nullptr, dbfr_loop, (void *)rt_id_int);
+    pthread_create(&pt_dbfrloop, nullptr, dbfr_loop, (void *)sock_rt_id_int);
 
     char cmd[512];
     for(;;) {

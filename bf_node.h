@@ -39,15 +39,10 @@ public:
         freeaddrinfo(udp_addr);
     }
 
-    /*std::string *get_ip() const
+    string get_nearest_neighbor()
     {
-        return ip;
+        return nearest_neighbor;
     }
-
-    std::string *get_port() const
-    {
-        return port;
-    }*/
 
     std::string get_alias() const
     {
