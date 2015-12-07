@@ -5,8 +5,9 @@ INCLUDES =
 
 CFLAGS   = -g -Wall $(INCLUDES)
 CXXFLAGS = -g -Wall $(INCLUDES) -std=c++0x
+
 LDFLAGS = -g
-LDLIBS  =
+LDLIBS  = -lpthread
 
 .PHONY: default
 default: bfclient

@@ -6,6 +6,7 @@
 #define __DBFR_TABLE_H
 
 #include <vector>
+#include <cstring>
 #include "bf_node.h"
 
 class RoutingTable {

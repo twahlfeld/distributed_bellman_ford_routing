@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <stdint.h>
 #include <cstdlib>
+#include <unistd.h>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -16,6 +17,7 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <pthread.h>
 #include <sys/errno.h>
 #include "bf_node.h"
 #include "routing_table.h"
@@ -24,7 +26,7 @@
 #ifdef __APPLE__
     #define IPV4INTERFACE "en0"
 #else
-    #define IPV4INTERFACE "eth0"
+    #define IPV4INTERFACE "eno16777736"
 #endif
 
 #define FOUND 0
