@@ -8,40 +8,21 @@
 #include <string>
 #include <vector>
 
-using std::string;
-
 class Tuip {
 private:
-    string id;
-    long long weight;
-    std::vector<Tuip> *rt;
+    char id[22];
+    double weight;
+    double neighbor_weight;
+    std::vector<Tuip> rt = std::vector<Tuip>();
 public:
-    Tuip(string alias, long long w) {
-        id = alias;
-        weight = w;
-        rt = nullptr;
-    }
-    Tuip(uint8_t *data);
+    Tuip(char *ip, char *port, const double w);
+    Tuip(void *data);
     ~Tuip();
-    void set_weight(long long w)
-    {
-        weight = w;
-    }
-
-    std::vector<Tuip> *get_rt()
-    {
-        return rt;
-    }
-
-    long long get_weight()
-    {
-        return weight;
-    }
-
-    string get_name()
-    {
-        return id;
-    }
+    std::vector<Tuip> *get_rt() { return &rt; }
+    const double get_weight() const  { return weight; }
+    const double get_neighbor() const { return neighbor_weight; }
+    char *get_name() const { return (char *)id; }
+    void set_weight(const double w) { weight = w; }
 };
 
 

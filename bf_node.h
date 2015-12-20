@@ -7,65 +7,55 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cmath>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netdb.h>
-#include <map>
+#include <float.h>
 #include <string>
+#include <map>
+#include <vector>
 
-#define INFINITY -1
-
-using std::string;
+//#define INFINITY DBL_MAX
 
 class Node {
 private:
-    string *ip;
-    string *port;
-    long long weight;
+    char *ip;
+    char *port;
+    double weight;
+    double last_weight;
+    double neighbor_weight;
     int udp_sock;
     addrinfo *udp_addr;
-    //std::map<std::string, Node *> adjlist;
-    string alias;
+    char *alias;
     time_t last_broadcast;
-    string nearest_neighbor;
+    char *nearest_neighbor;
+    time_t timeout_val;
 
 public:
-    Node(const char *ip_addr, const char *prt, const int64_t w,
-         const int sock, addrinfo *addr);
-    ~Node()
-    {
-        delete ip;
-        delete port;
-        freeaddrinfo(udp_addr);
-    }
+    Node(char *ip_addr, char *prt, const double w, const double nw,
+         const time_t to, const int sock, addrinfo *addr, char *neighbor);
+    ~Node();
 
-    string get_nearest_neighbor()
-    {
-        return nearest_neighbor;
-    }
+    /* Accessors */
+    char *get_nearest_neighbor() const { return nearest_neighbor; }
+    char *get_alias() const { return alias; }
+    const int get_sock() const { return udp_sock; }
+    addrinfo *get_addr() const { return udp_addr; }
+    const double get_weight() const { return weight; }
+    const double get_neighbor_weight() const { return neighbor_weight; }
+    bool timeout();
 
-    std::string get_alias() const
-    {
-        return alias;
-    }
-
-    long long get_weight() const
-    {
-        return weight;
-    }
-
-    void broadcast_to(string *tuip_id, std::map<string, Node *> *routemap);
-
-    bool timeout(time_t *timeout) {
-        time_t tv_now;
-        return time(&tv_now) > *timeout * 3 + last_broadcast;
-    }
-
+    /* Mutators */
+    void set_neighbor_weight(const double w) { neighbor_weight = w; }
+    void set_weight(const double w) { weight = w; }
+    void update_broadcast_time() { time(&last_broadcast); }
+    void link_down();
+    void link_up() { weight = last_weight; }
+    void broadcast_to(const char *tuip_id, double nghbr_w,
+                      std::map<std::string, Node *> *routemap,
+                      std::map<std::string, double> *nghbr);
     void update_route(Node *node);
-    void set_weight(long long w)
-    {
-        weight = w;
-    }
 };
 
 #endif

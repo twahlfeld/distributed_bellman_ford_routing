@@ -11,47 +11,33 @@
 
 class RoutingTable {
 private:
-    std::map<string, Node *>  table;
+    char *id;
+    std::map<std::string, Node *> table;
+    std::map<std::string, double> neighbor_vec;
+    void print_table_row(Node *node);
 
 public:
-    std::map<string, Node *> *showrt() {
-        return &table;
-    }
-
-    std::map<string, Node *> *get_table() {
-        return &table;
-    };
-
-    RoutingTable() {
-
-    }
-
-    void add_node(Node *node) {
-        table.insert(std::pair<string, Node *>(node->get_alias(), node));
-    }
-
-    void remove_node(Node *node) {
-        table.erase(table.find(node->get_alias()));
-        delete node;
-    }
-
-    Node *get_node(string id)
-    {
-        if(table.find(id) == table.end()) {
-            return nullptr;
-        }
-        return table.find(id)->second;
-    }
-
-    long long find_weight(string id) {
-        return table.find(id)->second->get_weight();
-    }
-
-    void print_table();
-
-    void broadcast_all(string *tuip_id);
-
+    RoutingTable(char *origin);
     ~RoutingTable();
+
+    /* Accessors */
+    std::map<std::string, Node *> *showrt() { return &table; }
+    std::map<std::string, Node *> *get_table() { return &table; }
+    std::map<std::string, double> *get_nghbr_map() { return &neighbor_vec; }
+    const std::map<std::string,Node *>::iterator begin(){return table.begin();}
+    const std::map<std::string, Node *>::iterator end() { return table.end(); }
+    const char *get_id() const { return id; }
+    Node *get_node(const char *id) const;
+    const double find_weight(char *id) const;
+    const double get_neighbor_weight(Node *node) const;
+
+    /* Mutators */
+    void set_neighbor_weight(Node *node, const double w);
+    void add_node(Node *node);
+    void add_neighbor(const Node *node);
+    void remove_node(Node *node);
+    void print_table();
+    void broadcast_all(const char *tuip_id);
 };
 
 #endif

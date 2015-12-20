@@ -5,45 +5,78 @@
 #include <cstring>
 #include <stdlib.h>
 #include "tuip.h"
+#include "bf_node.h"
 
-Tuip::Tuip(uint8_t *data)
+Tuip::Tuip(void *data)
 {
-    char *buf = (char *)data;
-    rt = new std::vector<Tuip>;
+    char buffer[512];
+    char *base = (char *)data;
     char *field;
     char *end;
-    if((field = strtok(nullptr, ":")) != nullptr) {
-        id = string(field);
-    } else {
+    size_t len;
+    if((field = strtok(base, ":")) == nullptr) {
         goto err;
     }
-    if((field = strtok(NULL, "\n")) != nullptr) {
-        id += string(field);
-    } else {
+    /* Copy IP */
+    strncpy(buffer, field, sizeof(buffer));
+    len = strlen(field);
+    if((field = strtok(NULL, ":")) == nullptr) {
         goto err;
     }
-    weight = 0;
+    buffer[len++] = ':';
+    /* Copy Port */
+    strncat(buffer, field, sizeof(buffer)-len);
+    len += strlen(field);
+    strncpy(id, buffer, sizeof(id));
+
+    /* Copy Weight */
+    if((field = strtok(NULL, "\n")) == nullptr) {
+        goto err;
+    }
+    weight = neighbor_weight = strtod(field, &end);
+
     while((field = strtok(nullptr, ":")) != nullptr && field[0] != '\n') {
-        string name = string(field);
-        string prt = string(strtok(buf, ":"));
-        long long w = strtoll(string(field=strtok(buf, "\n")).c_str(),&end,10);
-        if(w == 0) {
-            goto err;
+        char *name = (char *)malloc(strlen(field)+1);
+        strcpy(name, field);
+        field = (strtok(nullptr, ":"));
+        char *prt = (char *)malloc(strlen(field)+1);
+        strcpy(prt, field);
+        double w = strtod(strtok(nullptr, "\n"), &end);
+        if(w == INFINITY) {
+            ;
         }
-        rt->push_back(Tuip(name + prt, w));
+        rt.push_back(Tuip(name, prt, w));
+        free(name);
+        free(prt);
     }
-    if((end = strstr(buf, "\n\n"))) {
-        strcpy(buf, end+2);
+    base = (char *)data;
+    if((end = strstr(base, "\n\n"))) {
+        strcpy(base, end+2);
     } else {
-        buf[0] = '\0';
+        base[0] = '\0';
     }
     return;
 
     err:
-    delete this;
+    base[0] = '\0';
+    return;
+}
+
+Tuip::Tuip(char *ip, char *port, const double w) {
+    char buffer[512];
+    strncpy(buffer, ip, sizeof(buffer));
+    buffer[strlen(buffer)] = ':';
+    strncat(buffer, port, sizeof(buffer)-strlen(ip)-1);
+    strcpy(id, buffer);
+    weight = w;
+
+    if(w == INFINITY) {
+        //printf("%s:%s->INFINITY\n", ip, port);
+    } else {
+        //printf("%s:%s->%f\n", ip, port, w);
+    }
 }
 
 Tuip::~Tuip()
 {
-    delete rt;
 }
