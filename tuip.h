@@ -13,7 +13,7 @@ private:
     char id[22];
     double weight;
     double neighbor_weight;
-    std::vector<Tuip> rt = std::vector<Tuip>();
+    std::vector<Tuip> rt;
 public:
     Tuip(char *ip, char *port, const double w);
     Tuip(void *data);

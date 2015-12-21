@@ -15,6 +15,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include "tuip.h"
 
 //#define INFINITY DBL_MAX
 
@@ -31,8 +32,10 @@ private:
     time_t last_broadcast;
     char *nearest_neighbor;
     time_t timeout_val;
+    std::map<std::string, double> past_neigbor_vec;
 
 public:
+    std::map<std::string, double> neigbor_vec;
     Node(char *ip_addr, char *prt, const double w, const double nw,
          const time_t to, const int sock, addrinfo *addr, char *neighbor);
     ~Node();
@@ -44,14 +47,15 @@ public:
     addrinfo *get_addr() const { return udp_addr; }
     const double get_weight() const { return weight; }
     const double get_neighbor_weight() const { return neighbor_weight; }
+    const double get_min_weight();
     bool timeout();
 
     /* Mutators */
     void set_neighbor_weight(const double w) { neighbor_weight = w; }
-    void set_weight(const double w) { weight = w; }
+    void update_weight(Tuip *tuip, std::map<std::string, Node *> *rt, const char *id);
     void update_broadcast_time() { time(&last_broadcast); }
-    void link_down();
-    void link_up() { weight = last_weight; }
+    void link_down(char *id);
+    void link_up(const char *id);
     void broadcast_to(const char *tuip_id, double nghbr_w,
                       std::map<std::string, Node *> *routemap,
                       std::map<std::string, double> *nghbr);

@@ -14,6 +14,7 @@ Tuip::Tuip(void *data)
     char *field;
     char *end;
     size_t len;
+    rt = std::vector<Tuip>();
     if((field = strtok(base, ":")) == nullptr) {
         goto err;
     }
@@ -63,6 +64,7 @@ Tuip::Tuip(void *data)
 }
 
 Tuip::Tuip(char *ip, char *port, const double w) {
+    rt = std::vector<Tuip>();
     char buffer[512];
     strncpy(buffer, ip, sizeof(buffer));
     buffer[strlen(buffer)] = ':';

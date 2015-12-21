@@ -26,7 +26,7 @@ void RoutingTable::broadcast_all(const char *tuip_id) {
             continue;
         }
         if(node->timeout()) {
-            node->set_weight(INFINITY);
+            node->link_down(id);
         } else {
             double w = get_neighbor_weight(node);
             node->broadcast_to(tuip_id, w, &table, &neighbor_vec);
@@ -36,13 +36,12 @@ void RoutingTable::broadcast_all(const char *tuip_id) {
 
 void RoutingTable::print_table_row(Node *node)
 {
-    if(node->get_weight() == INFINITY) {
+    if(node->get_min_weight() == INFINITY) {
         printf("## %-21s ## %-20s ## %-21s ##\n", node->get_alias(),
                "INFINITY", node->get_nearest_neighbor());
     } else {
         printf("## %-21s ## %-20.1f ## %-21s ##\n", node->get_alias(),
-               node->get_weight()+get_node(node->get_nearest_neighbor())->get_neighbor_weight(),
-               node->get_nearest_neighbor());
+               node->get_min_weight(), node->get_nearest_neighbor());
     }
     for(int i = 0; i < 76; i++) {
         putc('#', stdout);

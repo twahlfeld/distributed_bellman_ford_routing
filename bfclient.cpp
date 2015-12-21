@@ -27,7 +27,7 @@
 #ifdef __APPLE__
     #define IPV4INTERFACE "en0"
 #else
-    #define IPV4INTERFACE "eno16777736"
+    #define IPV4INTERFACE "eth0"
 #endif
 
 #define FOUND 0
@@ -81,8 +81,6 @@ int open_udp_listening_socket(const char *port)
     int sock = create_udp_socket(addr);
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(int)) < 0)
         perror("setsockopt(SO_REUSEADDR) failed");
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &enabled, sizeof(int)) < 0)
-        perror("setsockopt(SO_REUSEPORT) failed");
     bind_udp(sock, addr);
     freeaddrinfo(addr);
     return sock;
@@ -130,12 +128,7 @@ void update_adj_vec(Tuip *tuip, RoutingTable *rt, const time_t to,
     std::vector<Tuip> *tuip_vec = tuip->get_rt();
     double cur_w = upd_weight;
     double neighbor_w = node->get_neighbor_weight();
-    //double past_w = rt->find_weight(tuip->get_name());
-    //double cur_nghbr_w = tuip->get_neighbor();
-    //double past_nghbr_w = rt->get_neighbor_weight(node);
     node->set_neighbor_weight(tuip->get_weight());
-    //double diff = cur_w - past_w;
-    //double nbghbr_diff = cur_nghbr_w - past_nghbr_w;
     for(auto it = tuip_vec->begin(); it != tuip_vec->end(); ++it) {
         Node *dst = rt->get_node(it->get_name());
         if(!dst) { // Not found
@@ -152,19 +145,15 @@ void update_adj_vec(Tuip *tuip, RoutingTable *rt, const time_t to,
                 rt->add_neighbor(tmp);
             }
         } else { // Node found
-            double totalw = dst->get_neighbor_weight() + dst->get_weight();
             //dst->set_neighbor_weight(tuip->get_weight());
-            if(dst->get_weight() == INFINITY && it->get_weight() != INFINITY) {
-                dst->link_up();
+            if (dst->get_weight() == INFINITY && it->get_weight() != INFINITY) {
+                dst->link_up(rt->get_id());
             }
             /* nearest neighbor is itself */
-            if(strcmp(node->get_nearest_neighbor(), node->get_alias())){
+            if (strcmp(node->get_nearest_neighbor(), node->get_alias())) {
                 node->set_neighbor_weight(tuip->get_weight());
             }
-            if(totalw > neighbor_w + cur_w) {
-                dst->update_route(node);
-                dst->set_weight(cur_w+neighbor_w);
-            }
+            dst->update_weight(tuip, rt->get_table(), rt->get_id());
         }
     }
 }
@@ -213,8 +202,8 @@ void *dbfr_loop(void *kludged_data) {
                 if(node) {
                     if(tuip.get_weight() != INFINITY) {
                         node->update_broadcast_time();
-                        update_adj_vec(&tuip, rt, *interval, weight);
                     }
+                    update_adj_vec(&tuip, rt, *interval, weight);
                 } else {
                     char *base = strtok(tuip.get_name(), ":");
                     char *ip, *port;
@@ -263,7 +252,7 @@ void *cmd_loop(void *kludged_data)
             if(strncasecmp(cmd, "linkdown ", 9) == FOUND) {
                 Node *node = rt->get_node(cmd+9);
                 if(node) {
-                    node->link_down();
+                    node->link_down(id);
                     rt->set_neighbor_weight(node, INFINITY);
                     /*node->broadcast_to(id, INFINITY,
                                        rt->get_table(), rt->get_nghbr_map());*/
